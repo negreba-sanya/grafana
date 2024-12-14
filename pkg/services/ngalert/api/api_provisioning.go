@@ -567,6 +567,7 @@ func exportResponse(c *contextmodel.ReqContext, body definitions.AlertingFileExp
 		return exportHcl(params.Download, body)
 	}
 
+	// TODO(@moustafab): escape $s here
 	if params.Download {
 		r := response.JSONDownload
 		if params.Format == "yaml" {
@@ -581,6 +582,27 @@ func exportResponse(c *contextmodel.ReqContext, body definitions.AlertingFileExp
 	}
 	return r(http.StatusOK, body)
 }
+
+// // this is to prevent the string from being interpreted as a variable in the provisioning engine
+// func escapeLabelsForFileProvisioning(labels map[string]string) *map[string]string {
+// 	escapedLabels := make(map[string]string, len(labels))
+// 	for k, v := range labels {
+// 		escapedLabelKey := addEscapeCharactersToString(k)
+// 		escapedLabels[escapedLabelKey] = addEscapeCharactersToString(v)
+// 	}
+// 	return &escapedLabels
+// }
+
+// func addEscapeCharactersToString(s string) string {
+// 	// loop over words in the string and add escape characters to any word that starts with $
+// 	words := strings.Split(s, " ")
+// 	for i, word := range words {
+// 		if strings.HasPrefix(word, "$") {
+// 			words[i] = "$" + word
+// 		}
+// 	}
+// 	return strings.Join(words, " ")
+// }
 
 func exportHcl(download bool, body definitions.AlertingFileExport) response.Response {
 	resources := make([]hcl.Resource, 0, len(body.Groups)+len(body.ContactPoints)+len(body.Policies)+len(body.MuteTimings))
@@ -609,6 +631,9 @@ func exportHcl(download bool, body definitions.AlertingFileExport) response.Resp
 
 		for idx, cp := range body.Policies {
 			policy := cp.RouteExport
+			// if policy.GroupByStr == nil {
+			// 	policy.GroupByStr = &[]string{}
+			// }
 			resources = append(resources, hcl.Resource{
 				Type: "grafana_notification_policy",
 				Name: fmt.Sprintf("notification_policy_%d", idx+1),
